@@ -8,7 +8,7 @@ Cohen's class distributions provide a general framework for time-frequency analy
 
 ## Features
 
-- Compute the ambiguity function of a signal.∂
+- Compute the ambiguity function of a signal.
 - Apply a kernel function to the ambiguity function.
 - Transform the modified ambiguity function back to the time-frequency domain.
 - Use different kernel functions (e.g., Wigner, Choi-Williams, Rihaczek, and Zhao-Atlas-Marks).
