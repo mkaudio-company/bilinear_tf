@@ -1,5 +1,14 @@
 //! This crate implements Cohen's class of time-frequency distributions in Rust. It allows computation of the time-frequency distribution of a signal with a chosen kernel function applied in the ambiguity domain.
 //! ### Usage
+//! ```
+//! use bilinear_tf::*;
+//! use rand::prelude::*;
+//! use rayon::prelude::*;
+//! 
+//! let mut input = vec![0.0;48000];
+//! input.par_iter_mut().for_each(|element| { *element = thread_rng().gen_range(-1.0..1.0); });
+//! let result = bilinear_tf_distribution(&input, cone_shape, 0.001);
+//! ```
 
 use no_denormals::*;
 use num_complex::Complex;

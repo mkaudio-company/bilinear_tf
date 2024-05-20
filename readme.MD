@@ -14,8 +14,8 @@ Cohen's class distributions provide a general framework for time-frequency analy
 - Use different kernel functions (e.g., Wigner, Choi-Williams, Rihaczek, and Zhao-Atlas-Marks).
 
 ## Changelog
-
-* 0.1.2 - Added document.
+* 0.2.1 - Added document.
+* 0.2.0 - Used rayon for multithreading.
 * 0.1.0 - 0.1.1 - Initial release.
 
 # Citation
