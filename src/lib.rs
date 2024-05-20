@@ -1,33 +1,45 @@
 use num_complex::Complex;
+use rayon::prelude::*;
 
 /// Cohen's Class Distribution Function.
-pub fn bilinear_tf_distribution<F : Fn(f64, f64, f64) -> f64>(input : &[f64], kernel: F, alpha : f64) -> Vec<Vec<f64>>
+pub fn bilinear_tf_distribution<F : Fn(f64, f64, f64) -> f64 + Sync>(input : &[f64], kernel: F, alpha : f64) -> Vec<Vec<f64>>
 {
     let len = input.len();
     let ambiguity = ambiguity(input);
 
-    let mut kernel_applied = vec![vec![Complex::new(0.0, 0.0); len]; len];
-    for eta in 0..len 
+    let kernel_applied = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![vec![Complex::new(0.0, 0.0); len]; len])));
+    (0..len).into_par_iter().for_each(|eta|
     {
-        for tau in 0..len
+        (0..len).into_par_iter().for_each(|tau|
         {
+            let mut kernel_applied = kernel_applied.try_lock().unwrap();
+            let kernel_applied = kernel_applied.as_mut().unwrap();
             kernel_applied[eta][tau] = ambiguity[eta][tau] * Complex::new(kernel(eta as f64, tau as f64, alpha), 0.0);
-        }
-    }
-
-    let mut distribution = vec![vec![0.0; len]; len];
-    for t in 0..len
+        });
+    });
+    let distribution = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![vec![0.0; len]; len])));
+    (0..len).into_par_iter().for_each(|time|
     {
-        for f in 0..len
+        (0..len).into_par_iter().for_each(|freq|
         {
-            let mut sum = Complex::new(0.0, 0.0);
-            for eta in 0..len
+            let sum = std::sync::Arc::new(std::sync::Mutex::new(Some(Complex::new(0.0, 0.0))));
+            (0..len).into_par_iter().for_each(|eta|
             {
-                for tau in 0..len { sum += kernel_applied[eta][tau] * Complex::new(0.0, 2.0 * std::f64::consts::PI * ((t * eta + f * tau) as f64) / len as f64).exp(); }
-            }
-            distribution[t][f] = sum.re / (len * len) as f64;
-        }
-    }
+                (0..len).into_par_iter().for_each(|tau|
+                {
+                    let kernel_applied = kernel_applied.lock().unwrap().take().unwrap();
+                    let mut sum = sum.try_lock().unwrap();
+                    let sum = sum.as_mut().unwrap();
+                    (*sum) += kernel_applied[eta][tau] * Complex::new(0.0, 2.0 * std::f64::consts::PI * ((time * eta + freq * tau) as f64) / len as f64).exp();
+                });
+            });
+            let sum = sum.lock().unwrap().take().unwrap();
+            let mut distribution = distribution.try_lock().unwrap();
+            let distribution = distribution.as_mut().unwrap();
+            distribution[time][freq] = sum.re / (len * len) as f64;
+        });
+    });
+    let distribution = distribution.lock().unwrap().take().unwrap();
     distribution
 }
 
@@ -36,23 +48,27 @@ pub fn bilinear_tf_distribution<F : Fn(f64, f64, f64) -> f64>(input : &[f64], ke
 fn ambiguity(input: &[f64]) -> Vec<Vec<Complex<f64>>>
 {
     let len = input.len();
-    let mut ambiguity = vec![vec![Complex::new(0.0, 0.0); len]; len];
+    let input = std::sync::Arc::new(input);
+    let ambiguity = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![vec![Complex::new(0.0, 0.0); len]; len])));
     
-    for eta in 0..len
+    (0..len).into_par_iter().for_each(|eta|
     {
-        for tau in 0..len
+        (0..len).into_par_iter().for_each(|tau|
         {
-            let mut sum = Complex::new(0.0, 0.0);
-            for t in 0..len
+            let sum = std::sync::Arc::new(std::sync::Mutex::new(Some(Complex::new(0.0, 0.0))));
+            (0..len).into_par_iter().for_each(|t|
             {
-                if (t + tau / 2) < len && (t - tau / 2) > 0
-                {
-                    sum += Complex::new(input[ t + tau / 2], 0.0) * Complex::new(input[t - tau / 2], 0.0).conj() * Complex::new(0.0, -2.0 * std::f64::consts::PI * (eta as f64) * (t as f64) / len as f64).exp();
-                }
-            }
+                let mut sum = sum.try_lock().unwrap();
+                let sum = sum.as_mut().unwrap();
+                *sum += Complex::new(input[ t + tau / 2], 0.0) * Complex::new(input[t - tau / 2], 0.0).conj() * Complex::new(0.0, -2.0 * std::f64::consts::PI * (eta as f64) * (t as f64) / len as f64).exp();
+            });
+            let sum = sum.lock().unwrap().take().unwrap();
+            let mut ambiguity = ambiguity.try_lock().unwrap();
+            let ambiguity = ambiguity.as_mut().unwrap();
             ambiguity[eta][tau] = sum;
-        }
-    }
+        });
+    });
+    let ambiguity = ambiguity.lock().unwrap().take().unwrap();
     ambiguity
 }
 

@@ -13,6 +13,11 @@ Cohen's class distributions provide a general framework for time-frequency analy
 - Transform the modified ambiguity function back to the time-frequency domain.
 - Use different kernel functions (e.g., Wigner, Choi-Williams, Rihaczek, and Zhao-Atlas-Marks).
 
+## Changelog
+
+* 0.2.0 - Added rayon crate for multithreading purpose.
+* 0.1.0 - 0.1.1 - Initial release.
+
 # Citation
 Cohen, Leon. Time-Frequency Analysis. Prentice Hall, 1995.
 

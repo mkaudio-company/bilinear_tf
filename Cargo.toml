@@ -3,7 +3,7 @@ name = "bilinear_tf"
 authors = ["Minjae Kim <minjaekim@mkaudio.company>"]
 description = "Cohen's class of time-frequency distributions in Rust."
 license = "MIT OR Apache-2.0"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 documentation = "https://docs.rs/bilinear_tf"
 readme = "README.md"
@@ -14,3 +14,4 @@ categories = ["audio", "signal-processing", "dsp", "time-frequency"]
 
 [dependencies]
 num-complex = "0.4.6"
+rayon = "1.1.0"
