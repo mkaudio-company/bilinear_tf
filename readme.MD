@@ -15,7 +15,7 @@ Cohen's class distributions provide a general framework for time-frequency analy
 
 ## Changelog
 
-* 0.2.0 - Added rayon crate for multithreading purpose.
+* 0.1.2 - Added document.
 * 0.1.0 - 0.1.1 - Initial release.
 
 # Citation

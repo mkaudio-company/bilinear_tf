@@ -1,75 +1,57 @@
+//! This crate implements Cohen's class of time-frequency distributions in Rust. It allows computation of the time-frequency distribution of a signal with a chosen kernel function applied in the ambiguity domain.
+//! ### Usage
+
+use no_denormals::*;
 use num_complex::Complex;
 use rayon::prelude::*;
 
 /// Cohen's Class Distribution Function.
 pub fn bilinear_tf_distribution<F : Fn(f64, f64, f64) -> f64 + Sync>(input : &[f64], kernel: F, alpha : f64) -> Vec<Vec<f64>>
 {
-    let len = input.len();
-    let ambiguity = ambiguity(input);
-
-    let kernel_applied = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![vec![Complex::new(0.0, 0.0); len]; len])));
-    (0..len).into_par_iter().for_each(|eta|
+    no_denormals(||
     {
-        (0..len).into_par_iter().for_each(|tau|
+        let len = input.len();
+        let ambiguity = ambiguity(input);
+        
+        (0..len).into_par_iter().map(|time|
         {
-            let mut kernel_applied = kernel_applied.try_lock().unwrap();
-            let kernel_applied = kernel_applied.as_mut().unwrap();
-            kernel_applied[eta][tau] = ambiguity[eta][tau] * Complex::new(kernel(eta as f64, tau as f64, alpha), 0.0);
-        });
-    });
-    let distribution = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![vec![0.0; len]; len])));
-    (0..len).into_par_iter().for_each(|time|
-    {
-        (0..len).into_par_iter().for_each(|freq|
-        {
-            let sum = std::sync::Arc::new(std::sync::Mutex::new(Some(Complex::new(0.0, 0.0))));
-            (0..len).into_par_iter().for_each(|eta|
+            (0..len).into_par_iter().map(|freq|
             {
-                (0..len).into_par_iter().for_each(|tau|
+                let mut sum = 0.0;
+                for eta in 0..len
                 {
-                    let kernel_applied = kernel_applied.lock().unwrap().take().unwrap();
-                    let mut sum = sum.try_lock().unwrap();
-                    let sum = sum.as_mut().unwrap();
-                    (*sum) += kernel_applied[eta][tau] * Complex::new(0.0, 2.0 * std::f64::consts::PI * ((time * eta + freq * tau) as f64) / len as f64).exp();
-                });
-            });
-            let sum = sum.lock().unwrap().take().unwrap();
-            let mut distribution = distribution.try_lock().unwrap();
-            let distribution = distribution.as_mut().unwrap();
-            distribution[time][freq] = sum.re / (len * len) as f64;
-        });
-    });
-    let distribution = distribution.lock().unwrap().take().unwrap();
-    distribution
+                    for tau in 0..len
+                    {
+                        let exponent = 2.0 * std::f64::consts::PI * ((time * eta + freq * tau) as f64) / len as f64;
+                        sum += (ambiguity[eta][tau] * kernel(eta as f64, tau as f64, alpha) * Complex::new(0.0, exponent).exp()).re;
+                    }
+                }
+                sum / (len * len) as f64 // Normalize by dividing by the total number of samples
+            }).collect()
+        }).collect()
+    })
 }
 
-
 /// Ambiguity Function.
+#[inline]
 fn ambiguity(input: &[f64]) -> Vec<Vec<Complex<f64>>>
 {
     let len = input.len();
-    let input = std::sync::Arc::new(input);
-    let ambiguity = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![vec![Complex::new(0.0, 0.0); len]; len])));
-    
-    (0..len).into_par_iter().for_each(|eta|
+    (0..len).map(|eta|
     {
-        (0..len).into_par_iter().for_each(|tau|
+        (0..len).map(|tau|
         {
-            let sum = std::sync::Arc::new(std::sync::Mutex::new(Some(Complex::new(0.0, 0.0))));
-            (0..len).into_par_iter().for_each(|t|
+            let mut sum = Complex::new(0.0, 0.0);
+            for t in 0..len
             {
-                let mut sum = sum.try_lock().unwrap();
-                let sum = sum.as_mut().unwrap();
-                *sum += Complex::new(input[ t + tau / 2], 0.0) * Complex::new(input[t - tau / 2], 0.0).conj() * Complex::new(0.0, -2.0 * std::f64::consts::PI * (eta as f64) * (t as f64) / len as f64).exp();
-            });
-            let sum = sum.lock().unwrap().take().unwrap();
-            let mut ambiguity = ambiguity.try_lock().unwrap();
-            let ambiguity = ambiguity.as_mut().unwrap();
-            ambiguity[eta][tau] = sum;
-        });
-    });
-    let ambiguity = ambiguity.lock().unwrap().take().unwrap();
-    ambiguity
+                if t + tau / 2 < len && t >= tau / 2
+                {
+                    sum += Complex::new(input[t + tau / 2], 0.0) * Complex::new(input[t - tau / 2], 0.0).conj() * Complex::new(0.0, -2.0 * std::f64::consts::PI * (eta as f64) * (t as f64) / len as f64).exp();
+                }
+            }
+            sum
+        }).collect()
+    }).collect()
 }
 
 /// Wigner Distribution Function
@@ -78,15 +60,32 @@ pub fn wigner(_ : f64, _ : f64, _ : f64) -> f64 { 1.0 }
 
 /// Choi-Williams Distribution Function
 #[inline]
-pub fn choi_williams(eta : f64, tau : f64, alpha : f64) -> f64 { (-alpha * (eta * tau).powi(2)).exp() }
+pub fn choi_williams(eta : f64, tau : f64, alpha : f64) -> f64 { (-alpha * (eta * eta) * (tau * tau) / 2.0).exp() }
 
 /// Rihaczek Distribution Function
 #[inline]
-pub fn rihaczek(eta : f64, tau : f64, alpha : f64) -> f64 { (-alpha * (eta * tau).powi(2)).exp() }
+pub fn rihaczek(eta : f64, tau : f64, alpha : f64) -> f64 { (-alpha * eta * tau).exp() }
 
 /// Zhao-Atlas-Marks Distribution Function
 #[inline]
 pub fn cone_shape(eta : f64, tau : f64, alpha : f64) -> f64
 {
-    (std::f64::consts::PI * eta * tau).sin() / (std::f64::consts::PI * eta * tau) * (-2.0 * std::f64::consts::PI * alpha * tau.powi(2)).exp()
+    let pi_eta_tau = std::f64::consts::PI * eta * tau;
+    if pi_eta_tau == 0.0 { return 1.0 }
+    (pi_eta_tau.sin() / pi_eta_tau) * (-2.0 * std::f64::consts::PI * alpha * tau.powi(2)).exp()
+}
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+    use rand::prelude::*;
+
+    #[test]
+    fn main()
+    {
+        let mut input = vec![0.0;48000];
+        input.par_iter_mut().for_each(|element| { *element = thread_rng().gen_range(-1.0..1.0); });
+        let result = bilinear_tf_distribution(&input, cone_shape, 0.001);
+    }
 }
