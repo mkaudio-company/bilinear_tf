@@ -1,4 +1,7 @@
 # bilinear_tf
+[![](https://img.shields.io/crates/v/bilinear_tf.svg)](https://crates.io/crates/bilinear_tf)
+[![](https://img.shields.io/crates/l/bilinear_tf.svg)](https://crates.io/crates/bilinear_tf)
+[![](https://docs.rs/bilinear_tf/badge.svg)](https://docs.rs/bilinear_tf/)
 
 This crate implements Cohen's class of time-frequency distributions in Rust. It allows computation of the time-frequency distribution of a signal with a chosen kernel function applied in the ambiguity domain.
 
