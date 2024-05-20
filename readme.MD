@@ -13,6 +13,17 @@ Cohen's class distributions provide a general framework for time-frequency analy
 - Transform the modified ambiguity function back to the time-frequency domain.
 - Use different kernel functions (e.g., Wigner, Choi-Williams, Rihaczek, and Zhao-Atlas-Marks).
 
+## Usage
+```rust
+use bilinear_tf::*;
+use rand::prelude::*;
+use rayon::prelude::*;
+
+let mut input = vec![0.0;48000];
+input.par_iter_mut().for_each(|element| { *element = thread_rng().gen_range(-1.0..1.0); });
+let result = bilinear_tf_distribution(&input, cone_shape, 0.001);
+```
+
 ## Changelog
 * 0.2.1 - Added document.
 * 0.2.0 - Used rayon for multithreading.
