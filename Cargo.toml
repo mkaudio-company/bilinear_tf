@@ -1,0 +1,16 @@
+[package]
+name = "bilinear_tf"
+authors = ["Minjae Kim <minjaekim@mkaudio.company>"]
+description = "Cohen's class of time-frequency distributions in Rust."
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+edition = "2021"
+documentation = "https://docs.rs/bilinear_tf"
+readme = "README.md"
+homepage = "https://github.com/mkaudio-company/bilinear_tf"
+repository = "https://github.com/mkaudio-company/bilinear_tf"
+keywords = ["audio", "api", "audio-api"]
+categories = ["audio", "api", "audio-api"]
+
+[dependencies]
+num-complex = "0.4.6"
