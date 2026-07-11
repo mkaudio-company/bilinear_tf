@@ -22,12 +22,13 @@ use bilinear_tf::*;
 use rand::prelude::*;
 use rayon::prelude::*;
 
-let mut input = vec![0.0;48000];
+let mut input = vec![0.0;128];
 input.par_iter_mut().for_each(|element| { *element = thread_rng().gen_range(-1.0..1.0); });
 let result = bilinear_tf_distribution(&input, cone_shape, 0.001);
 ```
 
 ## Changelog
+* 0.3.0 - Reworked `bilinear_tf_distribution` to exploit the separability of the exponential kernel, computing it as two DFT passes (O(n^3)) instead of a naive O(n^4) double sum, and SIMD-accelerated the inner dot products.
 * 0.2.1 - Added document.
 * 0.2.0 - Used rayon for multithreading.
 * 0.1.0 - 0.1.1 - Initial release.
