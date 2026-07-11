@@ -10,7 +10,7 @@ readme = "README.md"
 homepage = "https://github.com/mkaudio-company/bilinear_tf"
 repository = "https://github.com/mkaudio-company/bilinear_tf"
 keywords = ["audio", "signal-processing", "dsp", "time-frequency"]
-categories = ["audio", "signal-processing", "dsp", "time-frequency"]
+categories = ["multimedia::audio", "algorithms", "mathematics"]
 
 [dependencies]
 no_denormals = "0.1.2"
